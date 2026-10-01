@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <title>Breadcrum</title>
+</head>
+<body>
+  <header class="head">
+    <span class="brand">🥖 Breadcrum</span>
+    <div class="head-actions">
+      <button id="save-btn-head" class="icon-btn" title="Aktuelle Seite speichern" aria-label="Aktuelle Seite speichern">
+        <span class="bm-icon" aria-hidden="true"></span>
+      </button>
+      <button id="settings-toggle" class="icon-btn" title="Einstellungen" aria-label="Einstellungen">⚙</button>
+    </div>
+  </header>
+
+  <section id="view-bookmarks" class="view">
+    <div class="search-filter-bar">
+      <div class="search-box">
+        <input type="search" id="bm-search" placeholder="Suchen in Bookmarks …" autocomplete="off">
+        <button type="button" id="bm-search-clear" class="search-clear hidden" aria-label="Suche leeren">×</button>
+      </div>
+      <div id="bm-filter-chips" class="filter-chips">
+        <button type="button" class="filter-chip active" data-filter="all">Alle</button>
+        <button type="button" class="filter-chip" data-filter="toread">👓 To-Read</button>
+        <button type="button" class="filter-chip" data-filter="starred">⭐ Starred</button>
+      </div>
+    </div>
+    <div class="bookmarks-head">
+      <span id="bm-count"></span>
+      <a id="bm-open-site" href="https://breadcrum.net/bookmarks" target="_blank" rel="noreferrer">Auf breadcrum.net ↗</a>
+    </div>
+    <ul id="bm-list" class="bm-list"></ul>
+    <button id="bm-more" class="more hidden">Mehr laden</button>
+    <div id="bm-status" class="status"></div>
+  </section>
+
+  <section id="view-edit" class="view hidden" aria-label="Bookmark bearbeiten">
+    <div id="edit-loading" class="status">Lade Bookmark …</div>
+    <form id="edit-form" class="edit-form hidden">
+      <label class="field">
+        <span class="label">Titel</span>
+        <input type="text" id="edit-title" maxlength="255" autocomplete="off">
+      </label>
+      <label class="field">
+        <span class="label">URL</span>
+        <input type="text" id="edit-url" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span class="label">Tags (Komma-getrennt)</span>
+        <input type="text" inputmode="text" id="edit-tags" autocomplete="off" placeholder="tag1, tag2">
+      </label>
+      <label class="field">
+        <span class="label">Notiz</span>
+        <textarea id="edit-note" rows="3"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="edit-starred">
+        <span>⭐ Starred</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="edit-toread">
+        <span>👓 Zum Lesen markiert</span>
+      </label>
+      <div id="edit-status" class="status hidden"></div>
+      <div class="edit-actions">
+        <button type="button" id="edit-cancel" class="secondary">Abbrechen</button>
+        <button type="submit" id="edit-save" class="primary">Speichern</button>
+      </div>
+      <button type="button" id="edit-delete" class="danger">Löschen …</button>
+    </form>
+  </section>
+
+  <section id="view-settings" class="view hidden">
+    <div id="no-token-banner" class="banner hidden">
+      Kein API-Token – bitte unten eintragen.
+    </div>
+    <label class="field">
+      <span class="label">API-Token</span>
+      <input type="password" id="token" autocomplete="off" spellcheck="false">
+    </label>
+    <p class="hint">
+      Token unter <a href="https://breadcrum.net/account" target="_blank" rel="noreferrer">breadcrum.net/account</a> erstellen (Auth-Token).
+    </p>
+    <button id="token-save" class="primary">Token speichern</button>
+    <div id="token-status" class="status hidden"></div>
+  </section>
+
+  <div id="save-overlay" class="save-overlay hidden" role="status" aria-live="polite">
+    <div class="save-card">
+      <div class="save-spinner" id="save-spinner"></div>
+      <div class="save-content" id="save-content"></div>
+    </div>
+  </div>
+
+  <script src="../lib/browser-polyfill.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

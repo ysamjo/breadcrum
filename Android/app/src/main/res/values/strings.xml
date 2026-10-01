@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Breadcrum</string>
+    <string name="invalid_share">Im geteilten Inhalt wurde kein Weblink gefunden.</string>
+    <string name="token_title">Breadcrum-API-Token</string>
+    <string name="token_help">Einmalig den Token aus Breadcrum unter Account → Auth Tokens einfügen. Er wird verschlüsselt auf diesem Gerät gespeichert.</string>
+    <string name="token_hint">API-Token</string>
+    <string name="token_save">Prüfen und speichern</string>
+    <string name="later">Später</string>
+    <string name="token_checking">Token wird geprüft …</string>
+    <string name="token_invalid">Token ungültig oder nicht erreichbar.</string>
+    <string name="token_saved">Token gespeichert.</string>
+    <string name="token_required">Breadcrum einmal öffnen und den API-Token hinterlegen.</string>
+    <string name="saving">Speichere in Breadcrum …</string>
+    <string name="saved">In Breadcrum gespeichert ✓</string>
+    <string name="already_saved">Bereits in Breadcrum vorhanden</string>
+    <string name="save_failed">Speichern fehlgeschlagen.</string>
+    <string name="token_expired">Breadcrum-Token ungültig. Bitte in der App erneuern.</string>
+    <string name="no_url_in_clipboard">In der Zwischenablage wurde kein Weblink gefunden.</string>
+    <string name="tile_save_clipboard">Link speichern</string>
+    <string name="shortcut_save_clipboard_short">Link speichern</string>
+    <string name="shortcut_save_clipboard_long">Link aus Zwischenablage speichern</string>
+    <string name="shortcut_toread_short">To-Read</string>
+    <string name="shortcut_toread_long">To-Read Leseliste öffnen</string>
+</resources>

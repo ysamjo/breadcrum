@@ -1,0 +1,13 @@
+# Breadcrum Monorepo
+.DS_Store
+.gradle/
+build/
+*/build/
+local.properties
+*.keystore
+*.jks
+*.apk
+*.idsig
+*.zip
+node_modules/
+.idea/
