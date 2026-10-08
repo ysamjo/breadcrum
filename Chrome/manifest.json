@@ -12,9 +12,7 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://breadcrum.net/*",
-    "http://*/*",
-    "https://*/*"
+    "https://breadcrum.net/*"
   ],
   "background": {
     "service_worker": "background.js"

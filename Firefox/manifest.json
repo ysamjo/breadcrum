@@ -12,9 +12,7 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://breadcrum.net/*",
-    "http://*/*",
-    "https://*/*"
+    "https://breadcrum.net/*"
   ],
   "background": {
     "scripts": ["lib/browser-polyfill.min.js", "background.js"]

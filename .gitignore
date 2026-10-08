@@ -11,3 +11,4 @@ local.properties
 *.zip
 node_modules/
 .idea/
+.artifacts/

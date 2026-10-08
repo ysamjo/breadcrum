@@ -5,7 +5,9 @@ Speichert die aktuelle Seite (oder einen Link) direkt in deinem
 Externe YouTube-Links (`/redirect?q=…`) werden direkt geöffnet, ohne
 Redirect-Warnseite.
 
-Diese Ausgabe ist für **Chrome** paketiert. Die gemeinsame Logik verwendet die
+Diese Ausgabe ist für **Chrome** paketiert. Die gemeinsame Logik liegt in
+`../extension-shared/` und wird mit `node ../scripts/sync-browser-files.mjs`
+nach Chrome und Firefox kopiert. Sie verwendet die
 [WebExtension-Polyfill](https://github.com/mozilla/webextension-polyfill).
 
 ## Features
@@ -28,6 +30,10 @@ Diese Ausgabe ist für **Chrome** paketiert. Die gemeinsame Logik verwendet die
   Kontextmenü und Tastenkürzel.
 - **Audio-Dateien:** Direkte URLs auf gängige Audioformate wie MP3, M4A, AAC,
   OGG, OPUS, WAV oder FLAC erzeugen ebenfalls automatisch eine Episode.
+- **Statusabfrage:** Die automatische Prüfung, ob die geöffnete Seite schon
+  gespeichert ist, ist standardmäßig ausgeschaltet. Sie lässt sich in den
+  Einstellungen aktivieren; dabei wird die Tab-URL zur Prüfung an Breadcrum
+  gesendet.
 
 ## Installation (Chrome – entpackt)
 
@@ -51,6 +57,9 @@ der Erweiterung klicken.
 
 Das Token wird nur lokal in `browser.storage.local` gespeichert und
 ausschließlich als `Authorization: Bearer <token>` an breadcrum.net gesendet.
+Seiteninhalte werden beim manuellen Speichern auf ausdrückliche Aktion gelesen.
+Die optionale Statusabfrage überträgt die URL des aktuellen Tabs an Breadcrum;
+sie ist standardmäßig deaktiviert.
 
 ## Funktionsweise / API
 
@@ -87,6 +96,11 @@ Bei einer neuen Version wird die bisherige Version nach `Archiv/` verschoben
 2. `npx web-ext build --source-dir . --artifacts-dir . --overwrite-dest`
    → ZIP nach `Archiv/breadcrum-<version>.zip` verschieben.
 3. In Chrome: `chrome://extensions` → **↻ (Neu laden)**.
+
+Gemeinsame Popup-, Extraktions- und Hintergrundlogik zuerst in
+`../extension-shared/` ändern und anschließend das Synchronisierungsskript
+ausführen. Browser-spezifische Manifeste und Polyfills bleiben in den jeweiligen
+Plattformordnern.
 
 ## Hinweis zum Userscript
 

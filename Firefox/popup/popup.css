@@ -132,6 +132,8 @@ textarea { resize: vertical; }
   .banner { background: #3a2f00; color: #ffd75e; }
 }
 .hint { color: var(--muted); font-size: 11px; margin: 4px 0 8px; }
+.setting-check { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 4px; font-size: 12px; cursor: pointer; }
+.setting-check input { flex: 0 0 16px; width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 a { color: var(--accent); }
 
 /* Search and filter bar */

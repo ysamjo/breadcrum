@@ -7,6 +7,22 @@ if (typeof importScripts === 'function' && typeof browser === 'undefined') {
 const API_BASE = 'https://breadcrum.net';
 const actionApi = typeof browser !== 'undefined' && (browser.action || browser.browserAction);
 const urlStatusCache = new Map();
+const urlStatusRequests = new Map();
+const URL_STATUS_CACHE_LIMIT = 250;
+let urlStatusGeneration = 0;
+
+async function getUrlStatusEnabled() {
+  const settings = await browser.storage.local.get('urlStatusEnabled');
+  return Boolean(settings && settings.urlStatusEnabled);
+}
+
+function cacheUrlStatus(url, entry) {
+  urlStatusCache.delete(url);
+  urlStatusCache.set(url, entry);
+  while (urlStatusCache.size > URL_STATUS_CACHE_LIMIT) {
+    urlStatusCache.delete(urlStatusCache.keys().next().value);
+  }
+}
 
 function isHttpUrl(url) {
   try {
@@ -45,34 +61,56 @@ async function setSavedBadge(tabId, isSaved) {
 
 async function checkUrlSaved(url) {
   if (!url || !isHttpUrl(url)) return { saved: false, id: null };
+  if (!(await getUrlStatusEnabled())) return { saved: false, id: null };
   const cached = urlStatusCache.get(url);
   const now = Date.now();
   if (cached && now - cached.ts < 180000) {
     return cached;
   }
+  const pending = urlStatusRequests.get(url);
+  if (pending) return pending;
+  const generation = urlStatusGeneration;
+  const request = (async () => {
+    try {
+      const token = await getToken();
+      if (!token) return { saved: false, id: null };
+      const query = `?url=${encodeURIComponent(url)}&exact_url=true`;
+      const res = await api('/api/bookmarks', { query });
+      const items = Array.isArray(res?.data) ? res.data : (res?.data ? [res.data] : []);
+      const saved = items.length > 0;
+      const bm = saved ? items[0] : null;
+      const entry = { saved, id: bm?.id || null, bookmark: bm, ts: Date.now() };
+      if (generation === urlStatusGeneration && await getUrlStatusEnabled()) {
+        cacheUrlStatus(url, entry);
+      }
+      return entry;
+    } catch (_) {
+      return { saved: false, id: null };
+    }
+  })();
+  urlStatusRequests.set(url, request);
   try {
-    const token = await getToken();
-    if (!token) return { saved: false, id: null };
-    const query = `?url=${encodeURIComponent(url)}&exact_url=true`;
-    const res = await api('/api/bookmarks', { query });
-    const items = Array.isArray(res?.data) ? res.data : (res?.data ? [res.data] : []);
-    const saved = items.length > 0;
-    const bm = saved ? items[0] : null;
-    const entry = { saved, id: bm?.id || null, bookmark: bm, ts: now };
-    urlStatusCache.set(url, entry);
-    return entry;
-  } catch (_) {
-    return { saved: false, id: null };
+    return await request;
+  } finally {
+    if (urlStatusRequests.get(url) === request) urlStatusRequests.delete(url);
   }
 }
 
 async function updateTabBadge(tabId, url) {
   if (!tabId) return;
+  if (!(await getUrlStatusEnabled())) {
+    await setSavedBadge(tabId, false);
+    return;
+  }
   if (!url || !isHttpUrl(url)) {
     await setSavedBadge(tabId, false);
     return;
   }
   const status = await checkUrlSaved(url);
+  if (!(await getUrlStatusEnabled())) {
+    await setSavedBadge(tabId, false);
+    return;
+  }
   await setSavedBadge(tabId, status.saved);
 }
 
@@ -86,6 +124,14 @@ async function refreshActiveTabBadge() {
   } catch (_) {}
 }
 
+async function clearSavedBadges() {
+  try {
+    const tabs = await browser.tabs.query({});
+    await Promise.all((tabs || []).filter((tab) => tab.id != null)
+      .map((tab) => setSavedBadge(tab.id, false)));
+  } catch (_) {}
+}
+
 const AUDIO_FILE_EXTENSIONS = new Set([
   'aac', 'aif', 'aiff', 'amr', 'au', 'caf', 'flac', 'm4a', 'm4b',
   'mka', 'mp2', 'mp3', 'oga', 'ogg', 'opus', 'wav', 'wave', 'weba', 'wma',
@@ -96,6 +142,16 @@ function isAudioFileUrl(value) {
     const pathname = decodeURIComponent(new URL(value).pathname).toLowerCase();
     const extension = pathname.match(/\.([a-z0-9]+)$/)?.[1];
     return Boolean(extension && AUDIO_FILE_EXTENSIONS.has(extension));
+  } catch (_) {
+    return false;
+  }
+}
+
+function isYouTubeUrl(value) {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    return host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com')
+      || host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com');
   } catch (_) {
     return false;
   }
@@ -167,7 +223,7 @@ async function saveBookmark(data, { meta = false, episode = false } = {}) {
     summary: data.summary || undefined,
     tags: Array.isArray(data.tags) && data.tags.length ? data.tags.filter(Boolean) : undefined,
   };
-  const createEpisode = Boolean(episode) || isAudioFileUrl(data.url);
+  const createEpisode = Boolean(episode) || isAudioFileUrl(data.url) || isYouTubeUrl(data.url);
   const query = `?${new URLSearchParams({
     meta: String(Boolean(meta)),
     episode: String(createEpisode),
@@ -179,7 +235,7 @@ async function saveBookmark(data, { meta = false, episode = false } = {}) {
   const id = result && result.data ? result.data.id : null;
   const status = result && result.status ? result.status : 'unknown';
   if (data.url) {
-    urlStatusCache.set(data.url, { saved: true, id, bookmark: result?.data, ts: Date.now() });
+    cacheUrlStatus(data.url, { saved: true, id, bookmark: result?.data, ts: Date.now() });
     refreshActiveTabBadge();
   }
   const messages = {
@@ -207,10 +263,26 @@ async function deleteBookmark(id) {
 }
 
 async function updateBookmark(id, patch) {
-  return api(`/api/bookmarks/${encodeURIComponent(id)}`, {
+  const result = await api(`/api/bookmarks/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: patch,
   });
+  const previous = [...urlStatusCache.entries()]
+    .filter(([, entry]) => String(entry.id) === String(id));
+  for (const [url] of previous) {
+    cacheUrlStatus(url, { saved: false, id: null, ts: Date.now() });
+  }
+  const bookmark = {
+    ...(previous.find(([, entry]) => entry.bookmark)?.[1].bookmark || {}),
+    ...patch,
+    ...(result?.data || {}),
+    id: result?.data?.id || id,
+  };
+  if (bookmark.url) {
+    cacheUrlStatus(bookmark.url, { saved: true, id: bookmark.id || id, bookmark, ts: Date.now() });
+  }
+  refreshActiveTabBadge();
+  return result;
 }
 
 async function getBookmark(id) {
@@ -299,7 +371,7 @@ async function handleMessage(msg) {
     case 'get': {
       try {
         const result = await getBookmark(msg.id);
-        return { ok: true, data: result };
+        return { ok: true, data: result?.data || result };
       } catch (err) {
         return friendlyError(err);
       }
@@ -345,6 +417,18 @@ async function handleMessage(msg) {
       urlStatusCache.clear();
       refreshActiveTabBadge();
       return { ok: true };
+    case 'get-url-status-enabled':
+      return { ok: true, enabled: await getUrlStatusEnabled() };
+    case 'set-url-status-enabled': {
+      const enabled = Boolean(msg.enabled);
+      await browser.storage.local.set({ urlStatusEnabled: enabled });
+      urlStatusGeneration += 1;
+      urlStatusCache.clear();
+      urlStatusRequests.clear();
+      if (enabled) refreshActiveTabBadge();
+      else clearSavedBadges();
+      return { ok: true, enabled };
+    }
     case 'validate-token': {
       try {
         await api('/api/bookmarks', { query: '?per_page=1' });

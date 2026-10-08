@@ -1,0 +1,22 @@
+name: Validierung
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gemeinsame Browser-Dateien synchronisieren
+        run: node scripts/sync-browser-files.mjs
+      - name: Synchronisierte Browser-Dateien im Commit prüfen
+        run: git diff --exit-code -- Chrome Firefox
+      - name: Synchronisierte Dateien und Syntax prüfen
+        run: node scripts/validate.mjs
+      - name: Whitespace prüfen
+        run: git diff --check

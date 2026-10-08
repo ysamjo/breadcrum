@@ -33,6 +33,7 @@ const SVG_GLASSES =
 
 const state = {
   token: null,
+  urlStatusEnabled: false,
   cursor: null,
   hasMore: false,
   loadingList: false,
@@ -228,6 +229,7 @@ async function extractActiveTab() {
 }
 
 async function checkActiveTabStatus() {
+  if (!state.urlStatusEnabled) return;
   const tab = await extractActiveTab();
   if (!tab || !tab.url) return;
   try {
@@ -448,6 +450,15 @@ async function submitEdit(ev) {
     setEditStatus('Gespeichert ✓', 'ok');
     setEditBusy(false);
     editContext.loaded = res.data || { ...(editContext.loaded || {}), ...form };
+    if (state.activeBookmark && String(state.activeBookmark.id) === String(editContext.id)) {
+      if (form.url === state.activeTabUrl) {
+        state.activeBookmark = { ...state.activeBookmark, ...form };
+      } else {
+        state.activeBookmark = null;
+        $('save-btn-head').classList.remove('already-saved');
+        $('save-btn-head').title = 'Aktuelle Seite speichern';
+      }
+    }
     loadBookmarks(true);
   } catch (err) {
     setEditStatus(String((err && err.message) || err), 'err');
@@ -906,6 +917,21 @@ $('token-save').addEventListener('click', async () => {
   if (state.token) checkActiveTabStatus();
 });
 
+$('url-status-enabled').addEventListener('change', async (event) => {
+  state.urlStatusEnabled = event.target.checked;
+  try {
+    await send({ type: 'set-url-status-enabled', enabled: state.urlStatusEnabled });
+    state.activeBookmark = null;
+    $('save-btn-head').classList.remove('already-saved');
+    $('save-btn-head').title = 'Aktuelle Seite speichern';
+    if (state.urlStatusEnabled && state.token) checkActiveTabStatus();
+  } catch (err) {
+    state.urlStatusEnabled = !event.target.checked;
+    event.target.checked = state.urlStatusEnabled;
+    statusEl($('token-status'), 'Einstellung konnte nicht gespeichert werden: ' + (err && err.message ? err.message : err), 'err');
+  }
+});
+
 (async function init() {
   overlay.init();
   initSearchAndFilters();
@@ -917,6 +943,11 @@ $('token-save').addEventListener('click', async () => {
     return;
   }
   state.token = res && res.token ? res.token : null;
+  try {
+    const urlStatus = await send({ type: 'get-url-status-enabled' });
+    state.urlStatusEnabled = Boolean(urlStatus && urlStatus.enabled);
+    $('url-status-enabled').checked = state.urlStatusEnabled;
+  } catch (_) {}
   $('token').value = state.token || '';
   $('save-btn-head').disabled = !state.token;
   if (!state.token) {
