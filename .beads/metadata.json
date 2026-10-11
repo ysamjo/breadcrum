@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "breadcrum",
+  "project_id": "066a2274-111a-41b1-a458-83110e57eaa5"
+}
