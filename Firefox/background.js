@@ -10,6 +10,8 @@ const urlStatusCache = new Map();
 const urlStatusRequests = new Map();
 const URL_STATUS_CACHE_LIMIT = 250;
 let urlStatusGeneration = 0;
+const TAB_BADGE_COOLDOWN_MS = 30000;
+const tabBadgeChecks = new Map();
 
 async function getUrlStatusEnabled() {
   const settings = await browser.storage.local.get('urlStatusEnabled');
@@ -112,6 +114,21 @@ async function updateTabBadge(tabId, url) {
     return;
   }
   await setSavedBadge(tabId, status.saved);
+}
+
+function shouldSkipTabBadgeCheck(tabId, url) {
+  const now = Date.now();
+  const last = tabBadgeChecks.get(tabId);
+  if (last && last.url === url && now - last.ts < TAB_BADGE_COOLDOWN_MS) {
+    return true;
+  }
+  tabBadgeChecks.set(tabId, { url, ts: now });
+  return false;
+}
+
+async function updateTabBadgeThrottled(tabId, url) {
+  if (!url || shouldSkipTabBadgeCheck(tabId, url)) return;
+  await updateTabBadge(tabId, url);
 }
 
 async function refreshActiveTabBadge() {
@@ -485,18 +502,23 @@ browser.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await browser.tabs.get(activeInfo.tabId);
     if (tab && tab.url) {
-      await updateTabBadge(tab.id, tab.url);
+      await updateTabBadgeThrottled(tab.id, tab.url);
     }
   } catch (_) {}
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!tab || !tab.active) return;
   if (changeInfo.status === 'complete' || changeInfo.url) {
-    const targetUrl = changeInfo.url || tab?.url;
+    const targetUrl = changeInfo.url || tab.url;
     if (targetUrl) {
-      updateTabBadge(tabId, targetUrl);
+      updateTabBadgeThrottled(tabId, targetUrl);
     }
   }
+});
+
+browser.tabs.onRemoved.addListener((tabId) => {
+  tabBadgeChecks.delete(tabId);
 });
 
 browser.contextMenus.onClicked.addListener(async (info, tab) => {

@@ -35,7 +35,9 @@ nach Chrome und Firefox kopiert. Sie nutzt die
 - **Statusabfrage:** Die automatische Prüfung, ob die geöffnete Seite schon
   gespeichert ist, ist standardmäßig ausgeschaltet. Sie lässt sich in den
   Einstellungen aktivieren; dabei wird die Tab-URL zur Prüfung an Breadcrum
-  gesendet.
+  gesendet. Geprüft wird nur der jeweils aktive Tab – Hintergrund- und
+  vorgezogene (Prefetch-)Tabs lösen keine Abfrage aus. Dieselbe URL wird pro
+  Tab höchstens alle 30 Sekunden neu geprüft.
 
 ## Installation (Firefox – temporär / Entwicklung)
 
